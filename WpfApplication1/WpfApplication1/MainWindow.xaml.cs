@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,19 +29,27 @@ namespace WpfApplication1
             InitializeComponent();
         }
 
-
         private void Grid_Loaded(object sender, RoutedEventArgs e)
         {
+            //Grid Select
             BindGrid();
-
+            //Row Changed Event
+            dataGrid1.SelectedCellsChanged += dataGrid1_SelectedCellsChanged;
+            //Init Bind Controls
             InitGridControls();
-        } 
+        }
 
         //Bind the Grid  
         XDocument xmldoc;
+        //Path
+        //C:\Users\J\Documents\GitHub\XmlCRUD\WpfApplication1\WpfApplication1\Xml\Emp12.xml
+        string _path = string.Format("{0}{1}", Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName, @"\Xml\Emp12.xml");
+        //WPF Parttern
+        //string path = AppDomain.CurrentDomain.BaseDirectory;
+
         public void BindGrid()
         {
-            xmldoc = XDocument.Load("D:/Emp12.xml");   //add xml document  
+            xmldoc = XDocument.Load(_path);   //add xml document  
             var bind = xmldoc.Descendants("Employee").Select(p => new
             {
                 Id = p.Element("id").Value,
@@ -50,8 +59,6 @@ namespace WpfApplication1
                 Address = p.Element("address").Value
             }).OrderBy(p => p.Id);
             dataGrid1.ItemsSource = bind;
-            dataGrid1.SelectedCellsChanged += dataGrid1_SelectedCellsChanged;
-            
         }
 
         void dataGrid1_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
@@ -64,7 +71,7 @@ namespace WpfApplication1
                     {
                         var col = item.Column as DataGridColumn;
 
-                        if ((element as TextBox).Name.Equals(col.Header.ToString()))
+                        if ((element as TextBox).Name.Equals(col.Header.ToString().ToLower()))
                         {
                             var fc = col.GetCellContent(item.Item);
 
@@ -92,7 +99,7 @@ namespace WpfApplication1
                 Label lbl = new Label();
                 lbl.Content = col.Header.ToString();
                 TextBox txb = new TextBox();
-                txb.Name = col.Header.ToString();
+                txb.Name = col.Header.ToString().ToLower();
                 txb.TextChanged += txb_TextChanged;
                 stackPanel1.Children.Add(lbl);
                 stackPanel1.Children.Add(txb);
@@ -140,37 +147,19 @@ namespace WpfApplication1
         void btn_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as Button).Content.Equals("추가"))
-            { 
+            {
+                Insert();
                 Reset();
             }
-        }
-
-        protected void Insert_Click(object sender, EventArgs e)
-        {
-            foreach (UIElement element in stackPanel1.Children)
+            if ((sender as Button).Content.Equals("수정"))
             {
-                XElement emp = new XElement("Employee");
-
-                if (element.GetType().Equals(typeof(TextBox)))
-                {
-                    emp.Add(new XElement((element as TextBox).Name, (element as TextBox).Text));
-                }
-
-                xmldoc.Root.Add(emp);
-                xmldoc.Save("D:/Emp12.xml");
+                Update("id");
             }
-
-            //XElement emp = new XElement("Employee",
-            //    new XElement("id", txtid.Text),
-            //    new XElement("name", txtname.Text),
-            //    new XElement("salary", txtsalary.Text),
-            //    new XElement("email", txtemail.Text),
-            //    new XElement("address", txtaddress.Text));
-            //xmldoc.Root.Add(emp);
-            //xmldoc.Save("D:/Emp12.xml");
-            //BindGrid();
-            //Reset(); // For clear textbox  
-
+            if ((sender as Button).Content.Equals("삭제"))
+            {
+                Delete("id");
+                Reset();
+            }
         }
 
         void Reset()
@@ -182,6 +171,100 @@ namespace WpfApplication1
                     (element as TextBox).Text = string.Empty;
                 }
             }
+        }
+
+        void Update(string key)
+        {
+            string keyValue = string.Empty;
+            foreach (UIElement element in stackPanel1.Children)
+            {
+                if (element.GetType().Equals(typeof(TextBox)))
+                {
+                    if (key.Equals((element as TextBox).Name))
+                    {
+                        keyValue = (element as TextBox).Text;
+                        break;
+                    }
+                }
+            }
+
+            XElement emp = xmldoc.Descendants("Employee").FirstOrDefault(p => p.Element(key).Value == keyValue);
+
+            foreach (UIElement element in stackPanel1.Children)
+            {
+                if (element.GetType().Equals(typeof(TextBox)))
+                {
+                    if (emp != null)
+                    {
+                        if (key.Equals((element as TextBox).Name))
+                            continue;
+
+                        emp.Element((element as TextBox).Name).Value = (element as TextBox).Text;
+                    }
+                }
+            }
+
+            if (emp != null)
+            {
+                xmldoc.Save(_path);
+                BindGrid();
+            }
+        }
+
+        void Insert()
+        {
+            XElement emp = new XElement("Employee");
+
+            foreach (UIElement element in stackPanel1.Children)
+            {
+                if (element.GetType().Equals(typeof(TextBox)))
+                {
+                    emp.Add(new XElement((element as TextBox).Name, (element as TextBox).Text));
+                }
+            }
+
+            xmldoc.Root.Add(emp);
+            xmldoc.Save(_path);
+            BindGrid();
+        }
+
+        void Delete(string key)
+        {
+            string keyValue = string.Empty;
+            foreach (UIElement element in stackPanel1.Children)
+            {
+                if (element.GetType().Equals(typeof(TextBox)))
+                {
+                    if ((element as TextBox).Name.Equals(key))
+                    {
+                        keyValue = (element as TextBox).Text;
+                        break;
+                    }
+                }
+            }
+
+            XElement emp = xmldoc.Descendants("Employee").FirstOrDefault(p => p.Element(key).Value == keyValue);
+            if (emp != null)
+            {
+                emp.Remove();
+                xmldoc.Save(_path);
+                BindGrid();
+            }
+        }
+
+        protected void Insert_Click(object sender, EventArgs e)
+        {
+            //XElement emp = new XElement("Employee",
+            //    new XElement("id", txtid.Text),
+            //    new XElement("name", txtname.Text),
+            //    new XElement("salary", txtsalary.Text),
+            //    new XElement("email", txtemail.Text),
+            //    new XElement("address", txtaddress.Text));
+            //xmldoc.Root.Add(emp);
+            //xmldoc.Save("D:/Emp12.xml");
+            //BindGrid();
+            //Reset(); // For clear textbox  
+
         }
 
         protected void Find(object sender, EventArgs e)
@@ -208,7 +291,7 @@ namespace WpfApplication1
             //    emp.Element("email").Value = txtemail.Text;
             //    emp.Element("address").Value = txtaddress.Text;
             //    xmldoc.Root.Add(emp);
-            //    xmldoc.Save("D:/Emp12.xml");
+            //    xmldoc.Save(_path);
             //    BindGrid();
             //    Reset();
 
@@ -221,7 +304,7 @@ namespace WpfApplication1
             //if (emp != null)
             //{
             //    emp.Remove();
-            //    xmldoc.Save("D:/Emp12.xml");
+            //    xmldoc.Save(_path);
             //    BindGrid();
             //    Reset();
             //}
