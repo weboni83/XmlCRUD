@@ -93,7 +93,9 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Xml\MenuList.xml" />
+  </ItemGroup>
   <ItemGroup>
     <Resource Include="Xml\Emp12.xml" />
   </ItemGroup>

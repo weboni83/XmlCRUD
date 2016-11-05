@@ -8,6 +8,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("xml/emp12.xml")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("xml/menulist.xml")]
 
 
